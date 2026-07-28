@@ -361,6 +361,21 @@ export function registerXchatTools(): void {
   };
 
   tool({
+    name: 'xchat_whoami',
+    description:
+      'The X account logged in on this browser: its @handle, read from the account switcher in X\'s own rendered UI. Useful for identity attestation.',
+    inputSchema: { type: 'object', properties: {} },
+    annotations: { readOnlyHint: true },
+    execute: async () => {
+      const btn = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"]');
+      const m = (btn?.textContent ?? '').match(/@([A-Za-z0-9_]{1,15})/);
+      return m
+        ? ok({ handle: m[1] })
+        : fail('Could not determine the logged-in X account (account switcher not rendered — is X logged in?).');
+    },
+  });
+
+  tool({
     name: 'xchat_state',
     description:
       'Current state of X DMs: URL, whether the DM UI is present, inbox vs message-requests view, the open conversation id, and the global unread count. Call this first to orient.',

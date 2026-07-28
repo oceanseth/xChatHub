@@ -129,19 +129,99 @@ export default defineBackground(() => {
     };
   }
 
+  // ── OpenSession connector (fork addition — oceanseth/xChatHub) ─────────────
+  //
+  // Ports from entrypoints/opensession.content.ts (the OpenSession web app).
+  // Their tool calls ride the same relay path as the local MCP bridge, into
+  // whatever x.com tab is active. Call ids from OpenSession pages are rewritten
+  // into a high id-space so results route back to the right consumer without
+  // colliding with the bridge's ids (which pass through untouched, preserving
+  // the bridge's resilience to service-worker restarts).
+
+  const OS_ID_BASE = 1_000_000_000;
+  let osNextId = OS_ID_BASE;
+  const osPorts = new Set<chrome.runtime.Port>();
+  const osInflight = new Map<number, { port: chrome.runtime.Port; pageId: number }>();
+
+  function osStatus(): { type: 'status'; connected: boolean } {
+    return { type: 'status', connected: relays.size > 0 };
+  }
+
+  function osBroadcastStatus(): void {
+    for (const p of osPorts) {
+      try {
+        p.postMessage(osStatus());
+      } catch {
+        // dead port — its onDisconnect cleans up
+      }
+    }
+  }
+
+  const OS_NO_TAB = {
+    content: [{ type: 'text', text: 'No x.com tab connected. Open x.com in another tab (window visible on screen) and retry.' }],
+    isError: true,
+  };
+
   chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'xchat-opensession') {
+      osPorts.add(port);
+      port.onMessage.addListener((msg: { type?: string; id?: number; name?: string; args?: unknown }) => {
+        if (msg?.type === 'hello') {
+          try {
+            port.postMessage(osStatus());
+          } catch {
+            /* dead port */
+          }
+        } else if (msg?.type === 'call' && typeof msg.id === 'number') {
+          const relay = activeTab != null ? relays.get(activeTab) : undefined;
+          if (!relay) {
+            try {
+              port.postMessage({ type: 'result', id: msg.id, result: OS_NO_TAB });
+            } catch {
+              /* dead port */
+            }
+            return;
+          }
+          const relayId = ++osNextId;
+          osInflight.set(relayId, { port, pageId: msg.id });
+          relay.postMessage({ type: 'call', id: relayId, name: msg.name, args: msg.args });
+        }
+      });
+      port.onDisconnect.addListener(() => {
+        osPorts.delete(port);
+        for (const [id, v] of osInflight) if (v.port === port) osInflight.delete(id);
+      });
+      try {
+        port.postMessage(osStatus());
+      } catch {
+        /* dead port */
+      }
+      return;
+    }
+
     if (port.name !== 'xchat-bridge') return;
     const tabId = port.sender?.tab?.id;
     if (tabId == null) return;
     relays.set(tabId, port);
     if (activeTab == null) activeTab = tabId;
+    osBroadcastStatus();
     port.onMessage.addListener((msg: { type?: string; tools?: unknown[]; id?: number; result?: unknown }) => {
       if (msg?.type === 'tools') {
         toolsByTab.set(tabId, msg.tools ?? []);
         activeTab = tabId; // most recent announcement wins (mirrors "the tab you're using")
         announceTools();
       } else if (msg?.type === 'result') {
-        wsSend({ type: 'result', id: msg.id, result: msg.result });
+        const os = typeof msg.id === 'number' ? osInflight.get(msg.id) : undefined;
+        if (os) {
+          osInflight.delete(msg.id!);
+          try {
+            os.port.postMessage({ type: 'result', id: os.pageId, result: msg.result });
+          } catch {
+            // OpenSession tab closed mid-call — drop the result
+          }
+        } else {
+          wsSend({ type: 'result', id: msg.id, result: msg.result });
+        }
       }
     });
     port.onDisconnect.addListener(() => {
@@ -155,6 +235,7 @@ export default defineBackground(() => {
         sock?.close();
         sock = null;
       }
+      osBroadcastStatus();
     });
     ensureSocket();
   });
