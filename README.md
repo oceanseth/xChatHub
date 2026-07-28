@@ -48,6 +48,42 @@ snooze, so xChat doesn't pretend to.
 <https://x.com/messages> (or `x.com/i/chat`) and xChat activates automatically. Works in any
 Chromium browser that can install from the store (Chrome, Arc, Brave, Edge, Vivaldi).
 
+> **Note:** the Web Store listing is built from the upstream project and does **not** include
+> this fork's OpenSession connector. For [opensession.groupnetwork.com](https://opensession.groupnetwork.com)
+> integration, install from this repo — see below.
+
+## Install the OpenSession-connected version (this fork)
+
+This fork ([`oceanseth/xChatHub`](https://github.com/oceanseth/xChatHub)) adds an
+**OpenSession connector**: on [opensession.groupnetwork.com](https://opensession.groupnetwork.com)
+the extension relays DM tool calls from the OpenSession chat HUD to your own x.com tab, so you
+can read and send X DMs (including E2E-encrypted XChat threads) without leaving the page —
+messages flow browser ⇄ x.com only, never through OpenSession servers. It also attests your
+logged-in X handle (`xchat_whoami`), which upgrades your GitHub ⇄ X identity link on
+OpenSession to extension-grade verification.
+
+The connector version isn't on the Chrome Web Store, so load it unpacked:
+
+1. ```bash
+   git clone https://github.com/oceanseth/xChatHub
+   cd xChatHub
+   npm install     # postinstall runs `wxt prepare`
+   npm run build   # production build → dist/
+   ```
+2. Open `chrome://extensions`, toggle **Developer mode** on (top-right).
+3. **If the Web Store xChat is installed, remove or disable it first** — both builds pin the
+   same extension ID, and two copies fight over the page.
+4. Click **Load unpacked** and select the **`dist`** folder.
+5. Open an x.com tab (log in, keep the window visible on screen), then visit
+   [opensession.groupnetwork.com](https://opensession.groupnetwork.com) → **Chat** tab. The
+   roster header shows **“DMs live”** when the connector is up.
+
+To update later: `git pull && npm run build`, then hit the refresh icon on the xChat card in
+`chrome://extensions` and reload your x.com and OpenSession tabs.
+
+Everything else on this page (keyboard shortcuts, WebMCP tools, the local MCP bridge) works
+identically in the fork; upstream changes are merged in regularly.
+
 ## Develop
 
 ```bash
