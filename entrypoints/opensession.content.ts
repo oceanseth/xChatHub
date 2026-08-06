@@ -68,6 +68,12 @@ export default defineContentScript({
         } catch {
           toPage({ xchatos: 'status', connected: false });
         }
+      } else if (d?.xchatos === 'open-bridge') {
+        try {
+          port?.postMessage({ type: 'open-bridge' });
+        } catch {
+          /* reconnect loop recovers */
+        }
       }
     });
 

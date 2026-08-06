@@ -11,20 +11,19 @@ export default defineConfig({
   outDir: 'dist',
   outDirTemplate: '.',
   manifest: {
-    name: 'xChat — X DMs, keyboard-first',
+    name: 'OpenSession xChat — X DMs + session HUD bridge',
     description:
-      'A fast, full-screen, keyboard-driven layer on top of X (Twitter) Direct Messages.',
+      'Keyboard-first X DMs (xChat) plus the OpenSession connector: DM GitHub collaborators from opensession.groupnetwork.com.',
     // version comes from package.json (WXT default) so a release tag drives it — see the
     // "Set version from tag" step in .github/workflows/release.yml.
     host_permissions: ['https://x.com/*'],
-    // Pin the extension ID to the Chrome Web Store item so unpacked/dev builds load with the
-    // same ID (oaejnakkgghcgpekgdoffnpobkhnmlfm). This is the store item's PUBLIC key (base64
-    // DER) — public by design (it ships in every .crx). The store still signs releases with its
-    // private key; this only makes local builds' derived ID match.
-    key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArNFqaQUET0zt3s6SsD2qJxyrjgCwIlnVqTdkgIQ52Un5Rpk8K7WHDLEYVhxz3Wxr3EUfr05+VQXGYjW/BKV0lWcM0hSVmkB0y1sQLx/UlNMjmzwXgBOZtN7pjLtSP86Cr1teF/UGd96P+Fm6mgEwwT9yUd7mngsBFMH7uDom5JCO7BAu5spAb09q9yyf3XipUrbdfAzEXv9o5iIW/HBFfNXRZhuD1uBBWvKhmreVP0mMac1bp/gstDXuk4agIJDKJWlQupiHauOlKtL9tv8J4afa0PDMo9f5KWoAohnVuzWaleIhJdFPtQVEXlW35CXeRdeV7d/dle+z6Gw31HHLowIDAQAB',
-    // Clickable toolbar icon (no popup) — background.ts handles onClicked to open X DMs.
+    // NOTE (fork): upstream pins the xChat store item's public key here so unpacked builds
+    // share its ID. OpenSession xChat is its own store item — no pinned key, so it coexists
+    // with upstream xChat instead of conflicting. (Local MCP bridge users: the bridge pins
+    // upstream's id by default — pass --allow-origin chrome-extension://<this build's id>.)
+    // Clickable toolbar icon (no popup) — background.ts handles onClicked to open OpenSession.
     action: {
-      default_title: 'Open X DMs (xChat)',
+      default_title: 'Open OpenSession',
       default_icon: {
         16: 'icon/16.png',
         32: 'icon/32.png',

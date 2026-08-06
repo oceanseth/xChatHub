@@ -8,11 +8,21 @@ export default defineBackground(() => {
   console.info('[xchat] background ready');
 
   const CHAT_URL = 'https://x.com/i/chat';
+  const APP_URL = 'https://opensession.groupnetwork.com';
 
-  // Clicking the toolbar icon always opens X DMs in a NEW tab. (No `default_popup` on the
-  // action, so onClicked fires.)
+  // Fork: the toolbar icon opens the OpenSession app (focusing an existing tab if one is
+  // open). X DMs stay one keystroke away inside the app. (No `default_popup`, so onClicked
+  // fires.)
   chrome.action.onClicked.addListener(() => {
-    chrome.tabs.create({ url: CHAT_URL });
+    chrome.tabs.query({ url: `${APP_URL}/*` }, (tabs) => {
+      const existing = tabs[0];
+      if (existing?.id != null) {
+        chrome.tabs.update(existing.id, { active: true });
+        if (existing.windowId != null) chrome.windows.update(existing.windowId, { focused: true });
+      } else {
+        chrome.tabs.create({ url: APP_URL });
+      }
+    });
   });
 
   // Unread badge: content scripts on x.com report X's own unread-DM count (see unread.ts). We
@@ -171,6 +181,22 @@ export default defineBackground(() => {
             port.postMessage(osStatus());
           } catch {
             /* dead port */
+          }
+        } else if (msg?.type === 'open-bridge') {
+          // Page-requested DM bridge: a small, visible, unfocused x.com popup
+          // window. Chrome renders only visible windows, so this is the
+          // minimal arrangement that makes DM reads/sends work. Reuse an
+          // existing x.com relay if one appears instead of stacking windows.
+          if (relays.size > 0) {
+            osBroadcastStatus();
+          } else {
+            chrome.windows.create({
+              url: CHAT_URL,
+              type: 'popup',
+              width: 480,
+              height: 640,
+              focused: false,
+            });
           }
         } else if (msg?.type === 'call' && typeof msg.id === 'number') {
           const relay = activeTab != null ? relays.get(activeTab) : undefined;

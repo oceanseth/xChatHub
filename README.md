@@ -82,7 +82,26 @@ To update later: `git pull && npm run build`, then hit the refresh icon on the x
 `chrome://extensions` and reload your x.com and OpenSession tabs.
 
 Everything else on this page (keyboard shortcuts, WebMCP tools, the local MCP bridge) works
-identically in the fork; upstream changes are merged in regularly.
+identically in the fork; upstream changes are merged in regularly. This fork ships as its
+**own extension identity** (“OpenSession xChat”, no pinned upstream key), so it can coexist
+with the Web Store xChat — but only one should be enabled at a time, since both enhance the
+same x.com pages. Bridge users: `xchat-mcp` pins upstream's extension id by default, so pass
+`--allow-origin chrome-extension://<your unpacked id>`.
+
+### Publishing to the Chrome Web Store (planned: “OpenSession xChat”)
+
+The plan is a dedicated store item so users get one-click install + auto-updates. Steps for
+the repo owner (can't be automated without store credentials):
+
+1. Chrome Web Store developer account (one-time $5 fee) at
+   <https://chrome.google.com/webstore/devconsole>.
+2. Create a **new item** and upload the build zip (`npm run build`, then zip the `dist/`
+   contents). Listing name: **OpenSession xChat**.
+3. For CI auto-publish on version tags, reuse upstream's `release.yml` after setting this
+   repo's own store credentials as Actions secrets (see `scripts/cws-token.mjs` for the
+   token flow) and updating the workflow's extension id to the new item's id.
+4. After the item exists, optionally pin its public key in `wxt.config.ts` (as upstream does)
+   so unpacked dev builds share the store id.
 
 ## Develop
 
