@@ -26,6 +26,8 @@ export default defineContentScript({
       window.postMessage(msg, location.origin);
     };
 
+    console.info('[opensession-xchat] connector content script active on', location.origin);
+
     // Presence beacon: announce immediately on load, before the background
     // round-trip, so the page learns the extension exists even if it loaded
     // first and its hello went unheard. Real connected-status follows.
