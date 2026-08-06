@@ -26,6 +26,11 @@ export default defineContentScript({
       window.postMessage(msg, location.origin);
     };
 
+    // Presence beacon: announce immediately on load, before the background
+    // round-trip, so the page learns the extension exists even if it loaded
+    // first and its hello went unheard. Real connected-status follows.
+    toPage({ xchatos: 'status', connected: false });
+
     function connect(): void {
       try {
         port = chrome.runtime.connect({ name: PORT_NAME });
